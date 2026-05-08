@@ -1,6 +1,6 @@
 {
   "name": "oracle-sqlplus-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Oracle Database MCP Server using sqlplus",
   "type": "module",
   "main": "dist/index.js",

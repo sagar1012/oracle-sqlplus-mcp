@@ -43,8 +43,8 @@ const QUERY_TIMEOUT_MS = parseInt(process.env.QUERY_TIMEOUT_MS ?? "30000", 10);
 if (!CONNECTION_STRING) {
   process.stderr.write(
     "[oracle-mcp] ERROR: ORACLE_CONNECTION env var is required.\n" +
-      "  Format: username/password@host:port/servicename\n" +
-      "  Example: scott/tiger@192.168.1.10:1521/ORCL\n"
+    "  Format: username/password@host:port/servicename\n" +
+    "  Example: scott/tiger@192.168.1.10:1521/ORCL\n"
   );
   process.exit(1);
 }
@@ -89,6 +89,20 @@ async function runSqlPlus(sql: string): Promise<SqlPlusResult> {
 
     child.stdout.on("data", (d: Buffer) => (stdout += d.toString()));
     child.stderr.on("data", (d: Buffer) => (stderr += d.toString()));
+
+    // Handle spawn errors (e.g. sqlplus not found)
+    child.on("error", (err: NodeJS.ErrnoException) => {
+      clearTimeout(timer);
+      if (err.code === "ENOENT") {
+        resolve({
+          success: false,
+          output: "",
+          error: `sqlplus not found at "${SQLPLUS_PATH}". Install Oracle Instant Client or set SQLPLUS_PATH env var.`,
+        });
+      } else {
+        resolve({ success: false, output: "", error: err.message });
+      }
+    });
 
     // Timeout guard
     const timer = setTimeout(() => {
@@ -447,8 +461,8 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 async function main() {
   process.stderr.write(
     `[oracle-mcp] Starting Oracle MCP Server (sqlplus mode)\n` +
-      `[oracle-mcp] Connection target: ${CONNECTION_STRING.replace(/:([^@]+)@/, ":***@")}\n` +
-      `[oracle-mcp] sqlplus binary: ${SQLPLUS_PATH}\n`
+    `[oracle-mcp] Connection target: ${CONNECTION_STRING.replace(/:([^@]+)@/, ":***@")}\n` +
+    `[oracle-mcp] sqlplus binary: ${SQLPLUS_PATH}\n`
   );
 
   const transport = new StdioServerTransport();

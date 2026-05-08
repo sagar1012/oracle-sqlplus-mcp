@@ -64,6 +64,20 @@ async function runSqlPlus(sql) {
         let stderr = "";
         child.stdout.on("data", (d) => (stdout += d.toString()));
         child.stderr.on("data", (d) => (stderr += d.toString()));
+        // Handle spawn errors (e.g. sqlplus not found)
+        child.on("error", (err) => {
+            clearTimeout(timer);
+            if (err.code === "ENOENT") {
+                resolve({
+                    success: false,
+                    output: "",
+                    error: `sqlplus not found at "${SQLPLUS_PATH}". Install Oracle Instant Client or set SQLPLUS_PATH env var.`,
+                });
+            }
+            else {
+                resolve({ success: false, output: "", error: err.message });
+            }
+        });
         // Timeout guard
         const timer = setTimeout(() => {
             child.kill("SIGTERM");

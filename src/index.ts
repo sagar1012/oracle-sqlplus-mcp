@@ -305,17 +305,26 @@ async function handleTool(
 
       let sql: string;
       if (schema) {
-        sql = `SELECT TABLE_NAME, NUM_ROWS, LAST_ANALYZED FROM ALL_TABLES WHERE OWNER = '${schema}'`;
+        sql = `SELECT TABLE_NAME FROM ALL_TABLES WHERE OWNER = '${schema}'`;
         if (search) sql += ` AND TABLE_NAME LIKE '${search}'`;
         sql += " ORDER BY TABLE_NAME";
       } else {
-        sql = "SELECT TABLE_NAME, NUM_ROWS, LAST_ANALYZED FROM USER_TABLES";
+        sql = "SELECT TABLE_NAME FROM USER_TABLES";
         if (search) sql += ` WHERE TABLE_NAME LIKE '${search}'`;
         sql += " ORDER BY TABLE_NAME";
       }
 
       const result = await runSqlPlus(sql);
-      return formatQueryResult(result, "List Tables");
+      if (!result.success) return formatQueryResult(result, "List Tables");
+
+      // Parse sqlplus output into JSON array
+      const tables = result.output
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line && !line.match(/^-+$/) && line !== "TABLE_NAME")
+        .map((table_name) => ({ table_name }));
+
+      return JSON.stringify(tables, null, 2);
     }
 
     // ── describe_table ───────────────────────────────────────────────────────
